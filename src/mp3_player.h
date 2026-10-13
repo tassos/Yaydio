@@ -128,6 +128,8 @@ class YMP3Player {
         if (_volume > _maxVolume) _setVolume(_maxVolume);
     }
 
+    YPlayMode playMode() { return _playMode; }
+
     // Album (repeat the album), repeat the current track, shuffle the album, and back to album
     YPlayMode cyclePlayMode() {
         _setPlayMode((YPlayMode)((_playMode + 1) % PLAY_MODE_COUNT));

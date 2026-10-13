@@ -31,6 +31,8 @@ Press the left knob to pause or resume the playback.
 
 Remove the keycard to stop the playback.
 
+During the playback, the display shows the [play mode](#repeat--shuffle) and the track number, e.g. `A :12`. The colon is on while playing and blinks while paused.
+
 
 ### Volume control
 Turn the left knob to increase or decrease the volume. The display shows the volume (`U 15`) while you turn it.
@@ -45,13 +47,13 @@ Turn the right knob to skip to the next or previous track.
 ### Repeat / shuffle
 Press the right knob to switch between the play modes:
 
-| Display | Play mode                                       |
-| ------- | ----------------------------------------------- |
-| `ALL`   | Play the album and start over at the end        |
-| `1`     | Repeat the current song                         |
-| `rAnd`  | Shuffle the album                               |
+| Display | Before the track number | Play mode                                |
+| ------- | ----------------------- | ---------------------------------------- |
+| `ALL`   | `A`                     | Play the album and start over at the end |
+| `1`     | `r`                     | Repeat the current song                  |
+| `rAnd`  | `n`                     | Shuffle the album                        |
 
-Every keycard starts in `ALL`.
+The play mode is shown for a moment after pressing, and stays on the display as the letter before the track number. Every keycard starts in `ALL`.
 
 
 ### Sleep timer

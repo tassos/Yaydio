@@ -8,12 +8,11 @@ const uint8_t _fail[] = {
     SEG_D | SEG_E | SEG_F,                          // L
 };
 
-const uint8_t _play[] = {
-    SEG_C | SEG_E,  // ||
-};
-
-const uint8_t _stop[] = {
-    SEG_C | SEG_D | SEG_E | SEG_G,  // []
+// Shown before the track number for each play mode, in the order of YMP3Player::YPlayMode
+const uint8_t _playModeLetters[] = {
+    SEG_A | SEG_B | SEG_C | SEG_E | SEG_F | SEG_G,  // A (all)
+    SEG_E | SEG_G,                                  // r (repeat)
+    SEG_C | SEG_E | SEG_G,                          // n (random)
 };
 
 const uint8_t _volume[] = {
@@ -132,11 +131,27 @@ class YDisplay {
         Serial.println(F("Display cleared"));
     }
 
-    void showTrack(uint16_t track, bool isPlaying) {
-        _display.setSegments(isPlaying ? _play : _stop, 1);
-        _display.showNumberDec(track, false, 3, 1);
+    // The play mode letter and the track number, e.g. "A :12"
+    void showTrack(uint16_t track, uint8_t playMode, bool isColonOn) {
+        _track = track;
+        _playMode = playMode;
+        showTrackColon(isColonOn);
         Serial.print(F("Track: "));
         Serial.println(track);
+    }
+
+    // Redraws the last track screen, to blink the colon without asking the player for the track again
+    void showTrackColon(bool isColonOn) {
+        uint8_t segments[4] = {_playModeLetters[_playMode], 0, 0, 0};
+
+        // The track number on the last three digits, without leading zeros
+        if (_track >= 100) segments[1] = _display.encodeDigit(_track / 100 % 10);
+        if (_track >= 10) segments[2] = _display.encodeDigit(_track / 10 % 10);
+        segments[3] = _display.encodeDigit(_track % 10);
+
+        // Only the colon in the middle is wired on this display, as the dot of the second digit
+        if (isColonOn) segments[1] |= SEG_DP;
+        _display.setSegments(segments);
     }
 
     void showVolume(uint8_t volume) {
@@ -231,4 +246,6 @@ class YDisplay {
    private:
     TM1637Display _display;
     uint8_t _brightness = 0;
+    uint16_t _track = 0;
+    uint8_t _playMode = 0;
 };

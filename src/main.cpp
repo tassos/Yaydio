@@ -72,14 +72,32 @@ unsigned long currentMillis = 0;
 
 uint16_t selectedAlbum = 1;
 
+// False while the volume or the play mode is shown for a moment instead of the track screen
+bool isTrackScreenShown = false;
+bool isTrackColonOn = false;
+
+// The colon is on while playing and blinks while paused
+bool shouldTrackColonBeOn() { return mp3Player.isPlaying() || (currentMillis / 500) % 2 == 0; }
+
 void updateTrackScreen() {
-    display.showTrack(mp3Player.currentTrack(), mp3Player.isPlaying());
+    isTrackColonOn = shouldTrackColonBeOn();
+    display.showTrack(mp3Player.currentTrack(), mp3Player.playMode(), isTrackColonOn);
+    isTrackScreenShown = true;
     lastUpdate = currentMillis;
+}
+
+// Blinks the colon while paused, using the last track rather than asking the player for it again
+void updateTrackColon() {
+    if (!isTrackScreenShown || shouldTrackColonBeOn() == isTrackColonOn) return;
+
+    isTrackColonOn = !isTrackColonOn;
+    display.showTrackColon(isTrackColonOn);
 }
 
 // Shown until the next track screen update, about a second later
 void updateVolumeScreen() {
     display.showVolume(mp3Player.volume());
+    isTrackScreenShown = false;
     lastUpdate = currentMillis;
 }
 
@@ -408,6 +426,7 @@ void loop() {
             // Shown until the next track screen update, about a second later
             if (rightBtn.justReleased()) {
                 display.showPlayMode(mp3Player.cyclePlayMode());
+                isTrackScreenShown = false;
                 lastUpdate = currentMillis;
             }
 
@@ -428,6 +447,7 @@ void loop() {
             }
 
             if (currentMillis - lastUpdate > 1000) updateTrackScreen();
+            updateTrackColon();
 
             break;
 
