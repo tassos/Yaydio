@@ -12,7 +12,7 @@ const uint8_t _fail[] = {
 const uint8_t _playModeLetters[] = {
     SEG_A | SEG_B | SEG_C | SEG_E | SEG_F | SEG_G,  // A (all)
     SEG_E | SEG_G,                                  // r (repeat)
-    SEG_C | SEG_E | SEG_G,                          // n (random)
+    SEG_A | SEG_C | SEG_D | SEG_F | SEG_G,          // S (shuffle)
 };
 
 const uint8_t _volume[] = {
@@ -84,9 +84,10 @@ const uint8_t _eqNames[][2] = {
 // The play modes, in the order of YMP3Player::YPlayMode
 const uint8_t _playModes[][4] = {
     {SEG_A | SEG_B | SEG_C | SEG_E | SEG_F | SEG_G, SEG_D | SEG_E | SEG_F, SEG_D | SEG_E | SEG_F, 0},  // ALL
-    {0, 0, SEG_B | SEG_C, 0},                                                                          // 1
-    {SEG_E | SEG_G, SEG_A | SEG_B | SEG_C | SEG_E | SEG_F | SEG_G, SEG_C | SEG_E | SEG_G,
-     SEG_B | SEG_C | SEG_D | SEG_E | SEG_G},  // rAnd
+    {SEG_E | SEG_G, SEG_A | SEG_D | SEG_E | SEG_F | SEG_G, SEG_A | SEG_B | SEG_E | SEG_F | SEG_G,
+     SEG_B | SEG_C},  // rEP1
+    {SEG_A | SEG_C | SEG_D | SEG_F | SEG_G, SEG_B | SEG_C | SEG_D | SEG_E | SEG_F, SEG_A | SEG_E | SEG_F | SEG_G,
+     SEG_A | SEG_E | SEG_F | SEG_G},  // SUFF
 };
 
 const uint8_t _off[] = {SEG_G, SEG_G};  // --
@@ -207,7 +208,7 @@ class YDisplay {
         _display.setSegments(isValueVisible ? _eqNames[eq] : _nothing, 2, 2);
     }
 
-    // "ALL" (repeat the album), "1" (repeat the track) or "rAnd" (shuffle)
+    // "ALL" (repeat the album), "rEP1" (repeat the track) or "SUFF" (shuffle)
     void showPlayMode(uint8_t playMode) { _display.setSegments(_playModes[playMode]); }
 
     void showEnd() { _display.setSegments(_end); }

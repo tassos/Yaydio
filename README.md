@@ -9,6 +9,7 @@
 ## ✨ Features
 - **Keycard playback:** Insert a keycard to instantly play an album.
 - **Simple controls:** Play/pause, next/previous track, volume up/down, repeat and shuffle.
+- **At a glance:** The display shows the play mode, the track number and whether it's playing or paused.
 - **Parent menu:** Assign albums to keycards and set a max volume, a sleep timer, the display brightness and the equalizer, hidden from little fingers.
 - **Audio options:** Built-in speaker or connect headphones via the 3.5mm jack.
 - **High capacity:**
@@ -50,8 +51,8 @@ Press the right knob to switch between the play modes:
 | Display | Before the track number | Play mode                                |
 | ------- | ----------------------- | ---------------------------------------- |
 | `ALL`   | `A`                     | Play the album and start over at the end |
-| `1`     | `r`                     | Repeat the current song                  |
-| `rAnd`  | `n`                     | Shuffle the album                        |
+| `rEP1`  | `r`                     | Repeat the current song                  |
+| `SUFF`  | `S`                     | Shuffle the album                        |
 
 The play mode is shown for a moment after pressing, and stays on the display as the letter before the track number. Every keycard starts in `ALL`.
 
