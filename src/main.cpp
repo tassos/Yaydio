@@ -37,6 +37,9 @@ YMODE mode = NO_CARD_MODE;
 bool hasModeChanged = true;
 bool isNewModeComing = false;
 
+// Where FAIL_MODE goes after showing the failure: back to the parent menu when writing a card failed
+YMODE modeAfterFail = NO_CARD_MODE;
+
 // Holding both knobs for PARENT_HOLD_MS opens the parent menu
 enum YPARENT_HOLD { HOLD_IDLE, HOLD_ACTIVE, HOLD_WAIT_RELEASE };
 const unsigned long PARENT_HOLD_MS = 5000;
@@ -336,6 +339,7 @@ void loop() {
                     Serial.println(F("Card read successfully, switching to appropriate mode"));
                     break;
                 case FAIL:
+                    modeAfterFail = NO_CARD_MODE;
                     changeMode(FAIL_MODE);
                     Serial.println(F("Failed to read card, switching to FAIL_MODE"));
                     break;
@@ -344,18 +348,14 @@ void loop() {
 
         case WRITE_CARD_MODE:
             if (hasModeChanged) display.showLoading();
+            // Cards are written from the parent menu, so go back to it, whatever the result
             switch (nfc.setAlbum(selectedAlbum)) {
                 case NO_CARD:
-                    changeMode(NO_CARD_MODE);
-                    break;
                 case SUCCESS:
-                    if (selectedAlbum == 0) {
-                        changeMode(NO_ALBUM_MODE);
-                    } else {
-                        changeMode(PLAYER_MODE);
-                    }
+                    changeMode(PARENT_MODE);
                     break;
                 case FAIL:
+                    modeAfterFail = PARENT_MODE;
                     changeMode(FAIL_MODE);
                     break;
             }
@@ -400,8 +400,9 @@ void loop() {
         case SET_ALBUM_MODE:
             if (hasModeChanged) selectAlbum(selectedAlbum == 0 ? 1 : selectedAlbum);
 
-            if (cardBtn.isReleased()) {
-                changeMode(NO_CARD_MODE);
+            // Removing the card or pressing the volume knob goes back to the parent menu without writing
+            if (cardBtn.isReleased() || leftBtn.justReleased()) {
+                changeMode(PARENT_MODE);
                 break;
             }
 
@@ -511,7 +512,7 @@ void loop() {
                 display.showFail();
                 mp3Player.stop();
             } else if (currentMillis - lastUpdate > 2000) {
-                changeMode(NO_CARD_MODE);
+                changeMode(modeAfterFail);
             }
             break;
     }
