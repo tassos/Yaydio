@@ -400,17 +400,19 @@ void loop() {
         case SET_ALBUM_MODE:
             if (hasModeChanged) selectAlbum(selectedAlbum == 0 ? 1 : selectedAlbum);
 
-            // Removing the card or pressing the volume knob goes back to the parent menu without writing
-            if (cardBtn.isReleased() || leftBtn.justReleased()) {
+            // Removing the card or pressing the track knob goes back to the parent menu without writing
+            if (cardBtn.isReleased() || rightBtn.justReleased()) {
                 changeMode(PARENT_MODE);
                 break;
             }
 
-            if (rightBtn.justReleased()) {
+            // Like the other parent menu values, the album is chosen with the volume knob:
+            // turn to change, press the same knob to write the card
+            if (leftBtn.justReleased()) {
                 changeMode(WRITE_CARD_MODE);
-            } else if (selectedAlbum < 9999 && rightRotaryEncoder.justTurnedCW()) {
+            } else if (selectedAlbum < 9999 && leftRotaryEncoder.justTurnedCW()) {
                 selectAlbum(selectedAlbum + 1);
-            } else if (selectedAlbum > 0 && rightRotaryEncoder.justTurnedCCW()) {
+            } else if (selectedAlbum > 0 && leftRotaryEncoder.justTurnedCCW()) {
                 selectAlbum(selectedAlbum - 1);
             }
 
