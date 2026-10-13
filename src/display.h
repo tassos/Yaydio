@@ -1,3 +1,4 @@
+#include <EEPROM.h>
 #include <TM1637Display.h>
 
 const uint8_t _fail[] = {
@@ -62,6 +63,11 @@ const uint8_t _sleepTimer[] = {
     SEG_D | SEG_E | SEG_F,                  // L
 };
 
+const uint8_t _brightnessLabel[] = {
+    SEG_C | SEG_D | SEG_E | SEG_F | SEG_G,  // b
+    SEG_E | SEG_G,                          // r
+};
+
 const uint8_t _off[] = {SEG_G, SEG_G};  // --
 
 const uint8_t _nothing[] = {0, 0};
@@ -75,7 +81,29 @@ const uint8_t _end[] = {
 
 class YDisplay {
    public:
-    YDisplay(byte clkPin, byte dioPin) : _display(clkPin, dioPin) { _display.setBrightness(0); }
+    static const uint8_t MAX_BRIGHTNESS = 7;
+
+    YDisplay(byte clkPin, byte dioPin) : _display(clkPin, dioPin) { _display.setBrightness(_brightness); }
+
+    void begin() {
+        // A never-written EEPROM reads 0xFF, so fall back to the default brightness
+        uint8_t savedBrightness = EEPROM.read(EEPROM_BRIGHTNESS_ADDR);
+        if (savedBrightness <= MAX_BRIGHTNESS) _brightness = savedBrightness;
+        _display.setBrightness(_brightness);
+    }
+
+    uint8_t brightness() { return _brightness; }
+
+    // Used by whatever is shown next, without saving it, so you can see it while choosing
+    void previewBrightness(uint8_t brightness) { _display.setBrightness(brightness); }
+
+    void setBrightness(uint8_t brightness) {
+        _brightness = brightness;
+        _display.setBrightness(_brightness);
+        EEPROM.update(EEPROM_BRIGHTNESS_ADDR, _brightness);
+        Serial.print(F("Brightness: "));
+        Serial.println(_brightness);
+    }
 
     void clear() {
         _display.clear();
@@ -125,6 +153,17 @@ class YDisplay {
         }
     }
 
+    // "br" and the brightness on the last digit. The value can be hidden to make it blink.
+    void showBrightness(uint8_t brightness, bool isValueVisible) {
+        _display.setSegments(_brightnessLabel, 2, 0);
+        _display.setSegments(_nothing, 1, 2);
+        if (isValueVisible) {
+            _display.showNumberDec(brightness, false, 1, 3);
+        } else {
+            _display.setSegments(_nothing, 1, 3);
+        }
+    }
+
     void showEnd() { _display.setSegments(_end); }
 
     void showAlbum(uint16_t album) {
@@ -160,4 +199,5 @@ class YDisplay {
 
    private:
     TM1637Display _display;
+    uint8_t _brightness = 0;
 };

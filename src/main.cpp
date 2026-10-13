@@ -46,7 +46,7 @@ YPARENT_HOLD parentHold = HOLD_IDLE;
 unsigned long parentHoldStartedAt = 0;
 uint8_t parentHoldProgress = 0;
 
-enum YPARENT_MENU_ITEM { CARD_ITEM, MAX_VOLUME_ITEM, SLEEP_TIMER_ITEM, END_ITEM, MENU_ITEM_COUNT };
+enum YPARENT_MENU_ITEM { CARD_ITEM, MAX_VOLUME_ITEM, SLEEP_TIMER_ITEM, BRIGHTNESS_ITEM, END_ITEM, MENU_ITEM_COUNT };
 
 uint8_t parentMenuItem = CARD_ITEM;
 bool isWaitingForCard = false;
@@ -55,7 +55,8 @@ bool isWaitingForCard = false;
 const uint8_t SLEEP_OPTIONS[] = {0, 15, 30, 45, 60, 90};
 const uint8_t SLEEP_OPTION_COUNT = sizeof(SLEEP_OPTIONS);
 
-// Editing the value of the selected menu item: the max volume, or the index of a SLEEP_OPTIONS
+// Editing the value of the selected menu item: the max volume, the index of a SLEEP_OPTIONS,
+// or the brightness
 bool isEditingValue = false;
 uint8_t editedValue = 0;
 unsigned long valueChangedAt = 0;
@@ -109,20 +110,33 @@ void showParentMenuItem() {
         case SLEEP_TIMER_ITEM:
             display.showSleepTimer(mp3Player.sleepMinutes(), true);
             break;
+        case BRIGHTNESS_ITEM:
+            display.showBrightness(display.brightness(), true);
+            break;
         case END_ITEM:
             display.showEnd();
             break;
     }
 }
 
+bool isEditableMenuItem() {
+    return parentMenuItem == MAX_VOLUME_ITEM || parentMenuItem == SLEEP_TIMER_ITEM || parentMenuItem == BRIGHTNESS_ITEM;
+}
+
 void startEditingValue() {
-    if (parentMenuItem == MAX_VOLUME_ITEM) {
-        editedValue = mp3Player.maxVolume();
-    } else {
-        editedValue = 0;
-        for (uint8_t i = 0; i < SLEEP_OPTION_COUNT; i++) {
-            if (SLEEP_OPTIONS[i] == mp3Player.sleepMinutes()) editedValue = i;
-        }
+    switch (parentMenuItem) {
+        case MAX_VOLUME_ITEM:
+            editedValue = mp3Player.maxVolume();
+            break;
+        case SLEEP_TIMER_ITEM:
+            editedValue = 0;
+            for (uint8_t i = 0; i < SLEEP_OPTION_COUNT; i++) {
+                if (SLEEP_OPTIONS[i] == mp3Player.sleepMinutes()) editedValue = i;
+            }
+            break;
+        case BRIGHTNESS_ITEM:
+            editedValue = display.brightness();
+            break;
     }
     isEditingValue = true;
     valueChangedAt = currentMillis;
@@ -131,16 +145,34 @@ void startEditingValue() {
 uint8_t minEditedValue() { return parentMenuItem == MAX_VOLUME_ITEM ? 1 : 0; }
 
 uint8_t maxEditedValue() {
-    return parentMenuItem == MAX_VOLUME_ITEM ? YMP3Player::VOLUME_LIMIT : SLEEP_OPTION_COUNT - 1;
+    switch (parentMenuItem) {
+        case MAX_VOLUME_ITEM:
+            return YMP3Player::VOLUME_LIMIT;
+        case SLEEP_TIMER_ITEM:
+            return SLEEP_OPTION_COUNT - 1;
+        default:
+            return YDisplay::MAX_BRIGHTNESS;
+    }
 }
 
 void saveEditedValue() {
-    if (parentMenuItem == MAX_VOLUME_ITEM) {
-        mp3Player.setMaxVolume(editedValue);
-        mp3Player.soundCheck(selectedAlbum == 0 ? 1 : selectedAlbum);
-    } else {
-        mp3Player.setSleepMinutes(SLEEP_OPTIONS[editedValue]);
+    switch (parentMenuItem) {
+        case MAX_VOLUME_ITEM:
+            mp3Player.setMaxVolume(editedValue);
+            mp3Player.soundCheck(selectedAlbum == 0 ? 1 : selectedAlbum);
+            break;
+        case SLEEP_TIMER_ITEM:
+            mp3Player.setSleepMinutes(SLEEP_OPTIONS[editedValue]);
+            break;
+        case BRIGHTNESS_ITEM:
+            display.setBrightness(editedValue);
+            break;
     }
+}
+
+void cancelEditedValue() {
+    // Undo the brightness preview
+    if (parentMenuItem == BRIGHTNESS_ITEM) display.previewBrightness(display.brightness());
 }
 
 // The value blinks while editing, but stays on for a moment after each turn so it's easy to read
@@ -152,10 +184,18 @@ void showEditedValue(bool isForced) {
     bool isValueVisible = currentMillis - valueChangedAt < 800 || (currentMillis / 400) % 2 == 0;
     if (!isForced && isValueVisible == wasValueVisible && editedValue == shownValue) return;
 
-    if (parentMenuItem == MAX_VOLUME_ITEM) {
-        display.showMaxVolume(editedValue, isValueVisible);
-    } else {
-        display.showSleepTimer(SLEEP_OPTIONS[editedValue], isValueVisible);
+    switch (parentMenuItem) {
+        case MAX_VOLUME_ITEM:
+            display.showMaxVolume(editedValue, isValueVisible);
+            break;
+        case SLEEP_TIMER_ITEM:
+            display.showSleepTimer(SLEEP_OPTIONS[editedValue], isValueVisible);
+            break;
+        case BRIGHTNESS_ITEM:
+            // Shown at the chosen brightness, so you can see it while choosing
+            display.previewBrightness(editedValue);
+            display.showBrightness(editedValue, isValueVisible);
+            break;
     }
     wasValueVisible = isValueVisible;
     shownValue = editedValue;
@@ -237,6 +277,8 @@ bool tryInitializePeripherals(int attempts = 5) {
 void setup() {
     Serial.begin(115200);
     Serial.println(F("Hi!"));
+
+    display.begin();
 
     if (!tryInitializePeripherals()) {
         Serial.println(F("Failed to initialize peripherals!"));
@@ -412,6 +454,7 @@ void loop() {
                 }
                 if (rightBtn.justReleased()) {
                     // Cancel without saving
+                    cancelEditedValue();
                     isEditingValue = false;
                     showParentMenuItem();
                     break;
@@ -450,7 +493,7 @@ void loop() {
                 if (parentMenuItem == END_ITEM) {
                     // Plays the inserted card again, if there is one
                     changeMode(NO_CARD_MODE);
-                } else if (parentMenuItem == MAX_VOLUME_ITEM || parentMenuItem == SLEEP_TIMER_ITEM) {
+                } else if (isEditableMenuItem()) {
                     startEditingValue();
                     showEditedValue(true);
                 } else if (cardBtn.isPressed()) {
