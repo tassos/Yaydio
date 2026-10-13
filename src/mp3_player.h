@@ -53,9 +53,12 @@ class YMP3Player {
         _playFirstTrack(album);
         delay(1000);
         _firstTrackInAlbum = _player.getFirstInDir();
+        _trackCountInAlbum = _player.getSoundCountDir();
         _startSleepTimer();
         Serial.print(F("Playing album: "));
-        Serial.println(album);
+        Serial.print(album);
+        Serial.print(F(", tracks: "));
+        Serial.println(_trackCountInAlbum);
     }
 
     // Like playAlbum, but without the delay needed for track numbers, so the knobs stay responsive
@@ -160,15 +163,25 @@ class YMP3Player {
         Serial.println(_sleepMinutes);
     }
 
+    // While shuffling, skipping plays a random track
     void next() {
+        if (_isShuffling()) return _playRandomTrack();
+
         _player.next();
         _isPlaying = true;
+        _trackStartedAt = millis();
         Serial.println(F("Playing next track"));
     }
 
+    // Goes back to the start of the track, or to the previous track when the track only just started,
+    // so going back twice quickly goes to the previous track
     void previous() {
+        if (millis() - _trackStartedAt > RESTART_TRACK_MS && _restartTrack()) return;
+        if (_isShuffling()) return _playRandomTrack();
+
         _player.previous();
         _isPlaying = true;
+        _trackStartedAt = millis();
         Serial.println(F("Playing previous track"));
     }
 
@@ -187,6 +200,8 @@ class YMP3Player {
       private:
     static const uint8_t MAX_SLEEP_MINUTES = 120;
     static const unsigned long SLEEP_FADE_MS = 30000;
+    // Going back during the first second of a track goes to the previous track instead of restarting it
+    static const unsigned long RESTART_TRACK_MS = 1000;
 
     enum YSleepState { SLEEP_OFF, SLEEP_RUNNING, SLEEP_DONE };
 
@@ -210,6 +225,43 @@ class YMP3Player {
         Serial.println(_playMode);
     }
 
+    // Needs at least two tracks to pick a different one, otherwise skipping works as usual
+    bool _isShuffling() { return _playMode == SHUFFLE_PLAY_MODE && _trackCountInAlbum > 1; }
+
+    // Plays a random track of the album, other than the current one
+    void _playRandomTrack() {
+        // Seeded on the first skip, as the time it takes someone to get there is random enough
+        static bool isRandomSeeded = false;
+        if (!isRandomSeeded) {
+            randomSeed(micros());
+            isRandomSeeded = true;
+        }
+
+        uint16_t currentTrack = _player.getPlayingSound();
+        uint16_t track;
+        do {
+            track = _firstTrackInAlbum + random(_trackCountInAlbum);
+        } while (track == currentTrack);
+
+        _player.playSpecified(track);
+        _isPlaying = true;
+        _trackStartedAt = millis();
+        Serial.print(F("Playing random track: "));
+        Serial.println(track - _firstTrackInAlbum + 1);
+    }
+
+    // Returns false when the player didn't say which track is playing, so it can't be restarted
+    bool _restartTrack() {
+        uint16_t currentTrack = _player.getPlayingSound();
+        if (currentTrack == 0) return false;
+
+        _player.playSpecified(currentTrack);
+        _isPlaying = true;
+        _trackStartedAt = millis();
+        Serial.println(F("Restarting track"));
+        return true;
+    }
+
     void _playFirstTrack(uint16_t album) {
         // Every album starts in album mode, so a repeat or shuffle doesn't stick to the next card
         if (_playMode != ALBUM_PLAY_MODE) _setPlayMode(ALBUM_PLAY_MODE);
@@ -221,6 +273,7 @@ class YMP3Player {
         _player.stop();
         _player.playSpecifiedDevicePath(DY::device_t::Sd, path);
         _isPlaying = true;
+        _trackStartedAt = millis();
     }
 
     // Goes back to the normal volume, so whatever plays next isn't at the max volume
@@ -282,6 +335,9 @@ class YMP3Player {
     }
 
     uint16_t _firstTrackInAlbum;
+    uint16_t _trackCountInAlbum = 0;
+    // When the player last started a track itself, not when a track ended and the next one started
+    unsigned long _trackStartedAt = 0;
     uint8_t _volume = 15;
     uint8_t _maxVolume = VOLUME_LIMIT;
     unsigned long _volumeChangedAt = 0;

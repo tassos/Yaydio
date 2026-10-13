@@ -44,6 +44,10 @@ The volume is remembered when the **Yaydio!** is switched off, and never goes ab
 ### Next / previous track
 Turn the right knob to skip to the next or previous track.
 
+Turning back once goes to the start of the track. Turn back again within a second to go to the previous track.
+
+While [shuffling](#repeat--shuffle), skipping plays a random track of the album.
+
 
 ### Repeat / shuffle
 Press the right knob to switch between the play modes:
