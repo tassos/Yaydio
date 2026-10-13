@@ -8,7 +8,8 @@
 
 ## ✨ Features
 - **Keycard playback:** Insert a keycard to instantly play an album.
-- **Simple controls:** Play/pause, next/previous track, volume up/down.
+- **Simple controls:** Play/pause, next/previous track, volume up/down, repeat and shuffle.
+- **Parent menu:** Assign albums to keycards and set a max volume, a sleep timer, the display brightness and the equalizer, hidden from little fingers.
 - **Audio options:** Built-in speaker or connect headphones via the 3.5mm jack.
 - **High capacity:**
     - Up to 999 songs per album
@@ -21,20 +22,40 @@
 
 ## 🕹️ Usage
 
+The left knob is the volume knob and the right knob is the track knob, as wired in [Wiring](#-wiring).
+
 ### Play / pause
 Inserting a keycard into the **Yaydio!** will automatically start the playback.
 
-Press either knob to pause or resume the playback.
+Press the left knob to pause or resume the playback.
 
 Remove the keycard to stop the playback.
 
 
 ### Volume control
-Turn the left knob to increase or decrease the volume.
+Turn the left knob to increase or decrease the volume. The display shows the volume (`U 15`) while you turn it.
+
+The volume is remembered when the **Yaydio!** is switched off, and never goes above the [max volume](#parent-menu).
 
 
 ### Next / previous track
 Turn the right knob to skip to the next or previous track.
+
+
+### Repeat / shuffle
+Press the right knob to switch between the play modes:
+
+| Display | Play mode                                       |
+| ------- | ----------------------------------------------- |
+| `ALL`   | Play the album and start over at the end        |
+| `1`     | Repeat the current song                         |
+| `rAnd`  | Shuffle the album                               |
+
+Every keycard starts in `ALL`.
+
+
+### Sleep timer
+When a [sleep timer](#parent-menu) is set, the playback fades out and pauses once the time is up, counting from when the keycard was inserted. Press the left knob to resume the playback and start a new timer.
 
 
 ### Setup
@@ -58,12 +79,32 @@ Turn the right knob to skip to the next or previous track.
     -   Tick the box next to `Case-sensitive:`.
 
 
+### Parent menu
+Hold both knobs for 5 seconds, with or without a keycard. The bottom bars of the display fill up while you hold them. Let go once they are full to open the parent menu.
+
+In the parent menu:
+- Turn the right knob to go through the settings, and press it to change one.
+- While changing a setting, turn the left knob to change it and press the left knob to save it, or press the right knob to cancel.
+- Select `End` to leave the parent menu. If a keycard is inserted, it starts playing.
+
+| Display | Setting                                                                                                   |
+| ------- | --------------------------------------------------------------------------------------------------------- |
+| `CArd`  | Assign an album to a keycard, see below                                                                    |
+| `UL17`  | Max volume (1 - 30). After saving, it plays for 3 seconds at the max volume so you can hear how loud it is |
+| `SL--`  | Sleep timer: off (`--`), 15, 30, 45, 60 or 90 minutes                                                      |
+| `br 0`  | Display brightness (0 - 7), shown on the display while you choose it                                       |
+| `Eqno`  | Equalizer: Normal (`no`), Pop (`Po`), Rock (`ro`), Jazz (`JA`) or Classic (`CL`), playing while you choose it |
+| `End`   | Leave the parent menu                                                                                      |
+
+All settings are remembered when the **Yaydio!** is switched off.
+
+
 ### Assign an album to a keycard
 
-1. Insert the keycard into the **Yaydio!**.
-2. Press the left and right knobs simultaneously.
-3. Turn the right knob to select the album number.
-4. Press the right knob to write the album number to the keycard.
+1. Open the [parent menu](#parent-menu) and select `CArd`.
+2. Insert the keycard, if it isn't inserted yet. The display shows `----` until it is.
+3. Turn the left knob to select the album number. The album starts playing when you stop turning, so you can hear which one it is. `nOnE` clears the keycard.
+4. Press the left knob to write the album number to the keycard, or the right knob to cancel.
 
 
 ## 🔨 Make your own
