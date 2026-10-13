@@ -8,8 +8,9 @@
 
 // Knobs: "left" and "right" follow the README wiring. On my build the knobs are mounted the other
 // way around, so physically the volume knob is on the right and the track knob on the left.
-// - Left knob (D2-D4): volume, changes values and albums in the parent menu (press to save)
-// - Right knob (D5-D7): tracks, moves through the parent menu (press to select, or to cancel a change)
+// - Left knob (D2-D4): volume (press to pause), changes values and albums in the parent menu (press to save)
+// - Right knob (D5-D7): tracks (press to change the play mode), moves through the parent menu (press to
+//   select, or to cancel a change)
 
 // Left button
 #define LEFT_BTN_PIN 2

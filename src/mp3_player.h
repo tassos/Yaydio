@@ -11,6 +11,8 @@ class YMP3Player {
     // Its equalizer presets, in the order of DY::eq_t: Normal, Pop, Rock, Jazz, Classic
     static const uint8_t EQ_COUNT = 5;
 
+    enum YPlayMode { ALBUM_PLAY_MODE, REPEAT_ONE_PLAY_MODE, SHUFFLE_PLAY_MODE, PLAY_MODE_COUNT };
+
     YMP3Player(byte rxPin, byte txPin) : _serial(rxPin, txPin), _player(&_serial) {}
 
     bool begin() {
@@ -126,6 +128,12 @@ class YMP3Player {
         if (_volume > _maxVolume) _setVolume(_maxVolume);
     }
 
+    // Album (repeat the album), repeat the current track, shuffle the album, and back to album
+    YPlayMode cyclePlayMode() {
+        _setPlayMode((YPlayMode)((_playMode + 1) % PLAY_MODE_COUNT));
+        return _playMode;
+    }
+
     uint8_t eq() { return _eq; }
 
     // Applies the equalizer without saving it, so you can hear it while choosing
@@ -183,7 +191,27 @@ class YMP3Player {
     SoftwareSerial _serial;
     DY::Player _player;
 
+    void _setPlayMode(YPlayMode playMode) {
+        _playMode = playMode;
+        switch (_playMode) {
+            case ALBUM_PLAY_MODE:
+                _player.setCycleMode(DY::play_mode_t::RepeatDir);
+                break;
+            case REPEAT_ONE_PLAY_MODE:
+                _player.setCycleMode(DY::play_mode_t::RepeatOne);
+                break;
+            default:
+                _player.setCycleMode(DY::play_mode_t::RandomDir);
+                break;
+        }
+        Serial.print(F("Play mode: "));
+        Serial.println(_playMode);
+    }
+
     void _playFirstTrack(uint16_t album) {
+        // Every album starts in album mode, so a repeat or shuffle doesn't stick to the next card
+        if (_playMode != ALBUM_PLAY_MODE) _setPlayMode(ALBUM_PLAY_MODE);
+
         // "/0001/001.mp3" is 13 characters plus the terminating zero
         char path[14];
         snprintf(path, sizeof(path), "/%04d/001.mp3", album);
@@ -258,6 +286,7 @@ class YMP3Player {
     bool _isVolumeUnsaved = false;
     bool _isSoundCheckActive = false;
     unsigned long _soundCheckStartedAt = 0;
+    YPlayMode _playMode = ALBUM_PLAY_MODE;
     uint8_t _eq = 0;
     uint8_t _sleepMinutes = 0;
     YSleepState _sleepState = SLEEP_OFF;

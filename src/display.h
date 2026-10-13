@@ -82,6 +82,14 @@ const uint8_t _eqNames[][2] = {
     {SEG_A | SEG_D | SEG_E | SEG_F, SEG_D | SEG_E | SEG_F},                          // CL (Classic)
 };
 
+// The play modes, in the order of YMP3Player::YPlayMode
+const uint8_t _playModes[][4] = {
+    {SEG_A | SEG_B | SEG_C | SEG_E | SEG_F | SEG_G, SEG_D | SEG_E | SEG_F, SEG_D | SEG_E | SEG_F, 0},  // ALL
+    {0, 0, SEG_B | SEG_C, 0},                                                                          // 1
+    {SEG_E | SEG_G, SEG_A | SEG_B | SEG_C | SEG_E | SEG_F | SEG_G, SEG_C | SEG_E | SEG_G,
+     SEG_B | SEG_C | SEG_D | SEG_E | SEG_G},  // rAnd
+};
+
 const uint8_t _off[] = {SEG_G, SEG_G};  // --
 
 const uint8_t _nothing[] = {0, 0};
@@ -183,6 +191,9 @@ class YDisplay {
         _display.setSegments(_eqLabel, 2, 0);
         _display.setSegments(isValueVisible ? _eqNames[eq] : _nothing, 2, 2);
     }
+
+    // "ALL" (repeat the album), "1" (repeat the track) or "rAnd" (shuffle)
+    void showPlayMode(uint8_t playMode) { _display.setSegments(_playModes[playMode]); }
 
     void showEnd() { _display.setSegments(_end); }
 

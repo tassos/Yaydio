@@ -400,9 +400,15 @@ void loop() {
                 break;
             }
 
-            if (leftBtn.justReleased() || rightBtn.justReleased()) {
+            if (leftBtn.justReleased()) {
                 mp3Player.togglePlayback();
                 updateTrackScreen();
+            }
+
+            // Shown until the next track screen update, about a second later
+            if (rightBtn.justReleased()) {
+                display.showPlayMode(mp3Player.cyclePlayMode());
+                lastUpdate = currentMillis;
             }
 
             if (leftRotaryEncoder.justTurnedCW()) {
