@@ -13,20 +13,40 @@ class YNFC {
    public:
     YNFC(byte irqPin, byte resetPin) : _nfc(irqPin, resetPin) {};
 
-    bool begin() { return _nfc.begin(); }
+    bool begin() {
+        if (!_nfc.begin()) return false;
+        // Never let a stuck I2C transfer block forever (25ms timeout, reset the bus on timeout)
+        Wire.setWireTimeout(25000, true);
+        // Put the PN532 in normal mode before configuring it, as in the Adafruit examples
+        if (!_nfc.SAMConfig()) return false;
+        // Limit how long the PN532 searches for a card, otherwise it retries forever (0xFF)
+        if (!_nfc.setPassiveActivationRetries(0x10)) return false;
+        // The library never reads the reply to that command, which leaves the PN532 unable
+        // to answer the next one. Read and discard it: RDY byte + 9-byte response frame.
+        Wire.requestFrom((uint8_t)PN532_I2C_ADDRESS, (uint8_t)10);
+        while (Wire.available()) Wire.read();
+        return true;
+    }
 
     YNFCResult read() {
         uint8_t success;
         uint8_t uid[] = {0, 0, 0, 0, 0, 0, 0};  // Buffer to store the returned UID
         uint8_t uidLength;                      // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
 
-        // Wait for an ISO14443A type cards (Mifare, etc.).  When one is found
+        Serial.println(F("Waiting for an ISO14443A card ..."));
+        // Wait up to 1s for an ISO14443A type cards (Mifare, etc.).  When one is found
         // 'uid' will be populated with the UID, and uidLength will indicate
         // if the uid is 4 bytes (Mifare Classic) or 7 bytes (Mifare Ultralight)
-        success = _nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
+        success = _nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength, 1000);
 
+        Serial.println(success);
         if (!success) return NO_CARD;
-        if (uidLength != 4) return FAIL;
+        // if (uidLength != 4) return FAIL;
+        Serial.print(F("Found card with UID: "));
+        for (uint8_t i = 0; i < uidLength; i++) {
+            Serial.print(uid[i], HEX);
+            if (i < uidLength - 1) Serial.print(F(":"));
+        }
 
         _nfc.PrintHex(uid, uidLength);
 
@@ -55,7 +75,7 @@ class YNFC {
 
     YNFCResult setAlbum(uint16_t album) {
         YNFCResult readResult = read();
-        if (read() != SUCCESS) return readResult;
+        if (readResult != SUCCESS) return readResult;
 
         uint8_t data[16] = {0};
 

@@ -12,6 +12,7 @@ class YButton {
 
         if (_currentState != _previousState) {
             _state = _currentState == LOW ? JUST_PRESSED : JUST_RELEASED;
+            Serial.print(F("Button state changed: "));
         } else {
             _state = _currentState == LOW ? STILL_PRESSED : STILL_RELEASED;
         }

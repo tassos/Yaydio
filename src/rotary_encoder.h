@@ -12,6 +12,8 @@ class YRotaryEncoder {
 
         if (_currentCLKState == LOW && _currentCLKState != _previousCLKState) {
             _direction = _dtBtn.getStateRaw() ? CW : CCW;
+            Serial.print(F("Direction: "));
+            Serial.println(_direction == CW ? F("CW") : F("CCW"));
         } else {
             _direction = NONE;
         }

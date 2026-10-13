@@ -6,6 +6,11 @@
 #define DISP_CLK_PIN 10
 #define DISP_DIO_PIN 11
 
+// Knobs: "left" and "right" follow the README wiring. On my build the knobs are mounted the other
+// way around, so physically the volume knob is on the right and the track knob on the left.
+// - Left knob (D2-D4): volume, edits values in the parent menu (press to save)
+// - Right knob (D5-D7): tracks, moves through the parent menu and selects albums (press to select)
+
 // Left button
 #define LEFT_BTN_PIN 2
 
@@ -27,3 +32,7 @@
 // DY-SV5W (MP3 Player)
 #define MP3_RX_PIN 12
 #define MP3_TX_PIN 13
+
+// EEPROM addresses for settings that survive a restart
+#define EEPROM_VOLUME_ADDR 0
+#define EEPROM_MAX_VOLUME_ADDR 1
