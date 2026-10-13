@@ -136,8 +136,9 @@ class YMP3Player {
     DY::Player _player;
 
     void _playFirstTrack(uint16_t album) {
-        char path[12];
-        sprintf(path, "/%04d/001.mp3", album);
+        // "/0001/001.mp3" is 13 characters plus the terminating zero
+        char path[14];
+        snprintf(path, sizeof(path), "/%04d/001.mp3", album);
 
         _player.stop();
         _player.playSpecifiedDevicePath(DY::device_t::Sd, path);
