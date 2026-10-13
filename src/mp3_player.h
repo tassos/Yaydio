@@ -8,6 +8,9 @@ class YMP3Player {
     // The loudest volume the DY-SV5W supports
     static const uint8_t VOLUME_LIMIT = 30;
 
+    // Its equalizer presets, in the order of DY::eq_t: Normal, Pop, Rock, Jazz, Classic
+    static const uint8_t EQ_COUNT = 5;
+
     YMP3Player(byte rxPin, byte txPin) : _serial(rxPin, txPin), _player(&_serial) {}
 
     bool begin() {
@@ -22,15 +25,21 @@ class YMP3Player {
         uint8_t savedSleepMinutes = EEPROM.read(EEPROM_SLEEP_MINUTES_ADDR);
         if (savedSleepMinutes <= MAX_SLEEP_MINUTES) _sleepMinutes = savedSleepMinutes;
 
+        uint8_t savedEq = EEPROM.read(EEPROM_EQ_ADDR);
+        if (savedEq < EQ_COUNT) _eq = savedEq;
+
         Serial.print(F("Starting volume: "));
         Serial.print(_volume);
         Serial.print(F(", max volume: "));
         Serial.print(_maxVolume);
         Serial.print(F(", sleep timer: "));
-        Serial.println(_sleepMinutes);
+        Serial.print(_sleepMinutes);
+        Serial.print(F(", equalizer: "));
+        Serial.println(_eq);
 
         _player.begin();
         _player.setVolume(_volume);
+        _player.setEq((DY::eq_t)_eq);
         _player.setCycleMode(DY::play_mode_t::RepeatDir);
         _player.stop();
 
@@ -115,6 +124,20 @@ class YMP3Player {
         Serial.println(_maxVolume);
 
         if (_volume > _maxVolume) _setVolume(_maxVolume);
+    }
+
+    uint8_t eq() { return _eq; }
+
+    // Applies the equalizer without saving it, so you can hear it while choosing
+    void previewEq(uint8_t eq) { _player.setEq((DY::eq_t)eq); }
+
+    // Saved straight away, as it only changes from the parent menu
+    void setEq(uint8_t eq) {
+        _eq = eq;
+        _player.setEq((DY::eq_t)_eq);
+        EEPROM.update(EEPROM_EQ_ADDR, _eq);
+        Serial.print(F("Equalizer: "));
+        Serial.println(_eq);
     }
 
     uint8_t sleepMinutes() { return _sleepMinutes; }
@@ -235,6 +258,7 @@ class YMP3Player {
     bool _isVolumeUnsaved = false;
     bool _isSoundCheckActive = false;
     unsigned long _soundCheckStartedAt = 0;
+    uint8_t _eq = 0;
     uint8_t _sleepMinutes = 0;
     YSleepState _sleepState = SLEEP_OFF;
     unsigned long _sleepStartedAt = 0;

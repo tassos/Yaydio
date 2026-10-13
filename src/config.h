@@ -38,6 +38,7 @@
 #define EEPROM_MAX_VOLUME_ADDR 1
 #define EEPROM_SLEEP_MINUTES_ADDR 2
 #define EEPROM_BRIGHTNESS_ADDR 3
+#define EEPROM_EQ_ADDR 4
 
 // Length of a sleep timer minute. Build with -DSLEEP_MINUTE_MS=1000UL to test it in seconds.
 #ifndef SLEEP_MINUTE_MS

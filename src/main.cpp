@@ -49,7 +49,7 @@ YPARENT_HOLD parentHold = HOLD_IDLE;
 unsigned long parentHoldStartedAt = 0;
 uint8_t parentHoldProgress = 0;
 
-enum YPARENT_MENU_ITEM { CARD_ITEM, MAX_VOLUME_ITEM, SLEEP_TIMER_ITEM, BRIGHTNESS_ITEM, END_ITEM, MENU_ITEM_COUNT };
+enum YPARENT_MENU_ITEM { CARD_ITEM, MAX_VOLUME_ITEM, SLEEP_TIMER_ITEM, BRIGHTNESS_ITEM, EQ_ITEM, END_ITEM, MENU_ITEM_COUNT };
 
 uint8_t parentMenuItem = CARD_ITEM;
 bool isWaitingForCard = false;
@@ -59,7 +59,7 @@ const uint8_t SLEEP_OPTIONS[] = {0, 15, 30, 45, 60, 90};
 const uint8_t SLEEP_OPTION_COUNT = sizeof(SLEEP_OPTIONS);
 
 // Editing the value of the selected menu item: the max volume, the index of a SLEEP_OPTIONS,
-// or the brightness
+// the brightness or the equalizer preset
 bool isEditingValue = false;
 uint8_t editedValue = 0;
 unsigned long valueChangedAt = 0;
@@ -116,6 +116,9 @@ void showParentMenuItem() {
         case BRIGHTNESS_ITEM:
             display.showBrightness(display.brightness(), true);
             break;
+        case EQ_ITEM:
+            display.showEq(mp3Player.eq(), true);
+            break;
         case END_ITEM:
             display.showEnd();
             break;
@@ -123,7 +126,8 @@ void showParentMenuItem() {
 }
 
 bool isEditableMenuItem() {
-    return parentMenuItem == MAX_VOLUME_ITEM || parentMenuItem == SLEEP_TIMER_ITEM || parentMenuItem == BRIGHTNESS_ITEM;
+    return parentMenuItem == MAX_VOLUME_ITEM || parentMenuItem == SLEEP_TIMER_ITEM || parentMenuItem == BRIGHTNESS_ITEM ||
+           parentMenuItem == EQ_ITEM;
 }
 
 void startEditingValue() {
@@ -140,6 +144,11 @@ void startEditingValue() {
         case BRIGHTNESS_ITEM:
             editedValue = display.brightness();
             break;
+        case EQ_ITEM:
+            editedValue = mp3Player.eq();
+            // Play something, so you can hear the presets while choosing
+            mp3Player.previewAlbum(selectedAlbum == 0 ? 1 : selectedAlbum);
+            break;
     }
     isEditingValue = true;
     valueChangedAt = currentMillis;
@@ -153,8 +162,10 @@ uint8_t maxEditedValue() {
             return YMP3Player::VOLUME_LIMIT;
         case SLEEP_TIMER_ITEM:
             return SLEEP_OPTION_COUNT - 1;
-        default:
+        case BRIGHTNESS_ITEM:
             return YDisplay::MAX_BRIGHTNESS;
+        default:
+            return YMP3Player::EQ_COUNT - 1;
     }
 }
 
@@ -170,12 +181,24 @@ void saveEditedValue() {
         case BRIGHTNESS_ITEM:
             display.setBrightness(editedValue);
             break;
+        case EQ_ITEM:
+            mp3Player.setEq(editedValue);
+            mp3Player.stop();
+            break;
     }
 }
 
+// Undoes the previews of the brightness and the equalizer
 void cancelEditedValue() {
-    // Undo the brightness preview
-    if (parentMenuItem == BRIGHTNESS_ITEM) display.previewBrightness(display.brightness());
+    switch (parentMenuItem) {
+        case BRIGHTNESS_ITEM:
+            display.previewBrightness(display.brightness());
+            break;
+        case EQ_ITEM:
+            mp3Player.previewEq(mp3Player.eq());
+            mp3Player.stop();
+            break;
+    }
 }
 
 // The value blinks while editing, but stays on for a moment after each turn so it's easy to read
@@ -198,6 +221,11 @@ void showEditedValue(bool isForced) {
             // Shown at the chosen brightness, so you can see it while choosing
             display.previewBrightness(editedValue);
             display.showBrightness(editedValue, isValueVisible);
+            break;
+        case EQ_ITEM:
+            // Only when it changed, rather than on every blink, to not keep sending it to the player
+            if (isForced || editedValue != shownValue) mp3Player.previewEq(editedValue);
+            display.showEq(editedValue, isValueVisible);
             break;
     }
     wasValueVisible = isValueVisible;

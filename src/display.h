@@ -68,6 +68,20 @@ const uint8_t _brightnessLabel[] = {
     SEG_E | SEG_G,                          // r
 };
 
+const uint8_t _eqLabel[] = {
+    SEG_A | SEG_D | SEG_E | SEG_F | SEG_G,  // E
+    SEG_A | SEG_B | SEG_C | SEG_F | SEG_G,  // q
+};
+
+// Two-letter names of the equalizer presets, in the order of DY::eq_t
+const uint8_t _eqNames[][2] = {
+    {SEG_C | SEG_E | SEG_G, SEG_C | SEG_D | SEG_E | SEG_G},                          // no (Normal)
+    {SEG_A | SEG_B | SEG_E | SEG_F | SEG_G, SEG_C | SEG_D | SEG_E | SEG_G},          // Po (Pop)
+    {SEG_E | SEG_G, SEG_C | SEG_D | SEG_E | SEG_G},                                  // ro (Rock)
+    {SEG_B | SEG_C | SEG_D | SEG_E, SEG_A | SEG_B | SEG_C | SEG_E | SEG_F | SEG_G},  // JA (Jazz)
+    {SEG_A | SEG_D | SEG_E | SEG_F, SEG_D | SEG_E | SEG_F},                          // CL (Classic)
+};
+
 const uint8_t _off[] = {SEG_G, SEG_G};  // --
 
 const uint8_t _nothing[] = {0, 0};
@@ -162,6 +176,12 @@ class YDisplay {
         } else {
             _display.setSegments(_nothing, 1, 3);
         }
+    }
+
+    // "Eq" and the name of the preset. The name can be hidden to make it blink.
+    void showEq(uint8_t eq, bool isValueVisible) {
+        _display.setSegments(_eqLabel, 2, 0);
+        _display.setSegments(isValueVisible ? _eqNames[eq] : _nothing, 2, 2);
     }
 
     void showEnd() { _display.setSegments(_end); }
