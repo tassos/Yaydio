@@ -19,10 +19,15 @@ class YMP3Player {
         if (savedVolume <= VOLUME_LIMIT) _volume = savedVolume;
         if (_volume > _maxVolume) _volume = _maxVolume;
 
+        uint8_t savedSleepMinutes = EEPROM.read(EEPROM_SLEEP_MINUTES_ADDR);
+        if (savedSleepMinutes <= MAX_SLEEP_MINUTES) _sleepMinutes = savedSleepMinutes;
+
         Serial.print(F("Starting volume: "));
         Serial.print(_volume);
         Serial.print(F(", max volume: "));
-        Serial.println(_maxVolume);
+        Serial.print(_maxVolume);
+        Serial.print(F(", sleep timer: "));
+        Serial.println(_sleepMinutes);
 
         _player.begin();
         _player.setVolume(_volume);
@@ -37,6 +42,7 @@ class YMP3Player {
         _playFirstTrack(album);
         delay(1000);
         _firstTrackInAlbum = _player.getFirstInDir();
+        _startSleepTimer();
         Serial.print(F("Playing album: "));
         Serial.println(album);
     }
@@ -65,6 +71,8 @@ class YMP3Player {
 
         if (_isPlaying) {
             _player.play();
+            // Resuming after the sleep timer put the player to sleep gives it a new timer
+            if (_sleepState == SLEEP_DONE) _startSleepTimer();
             Serial.println(F("Resuming playback"));
         } else {
             _player.pause();
@@ -82,6 +90,8 @@ class YMP3Player {
         }
 
         if (_isSoundCheckActive && millis() - _soundCheckStartedAt > 3000) stop();
+
+        _updateSleepTimer();
     }
 
     // Set the volume ourselves instead of using volumeIncrease/Decrease, so we always know its value
@@ -107,6 +117,15 @@ class YMP3Player {
         if (_volume > _maxVolume) _setVolume(_maxVolume);
     }
 
+    uint8_t sleepMinutes() { return _sleepMinutes; }
+
+    // 0 turns the sleep timer off. Saved straight away, as it only changes from the parent menu.
+    void setSleepMinutes(uint8_t sleepMinutes) {
+        _sleepMinutes = sleepMinutes;
+        EEPROM.update(EEPROM_SLEEP_MINUTES_ADDR, _sleepMinutes);
+        Serial.print(F("Sleep timer: "));
+        Serial.println(_sleepMinutes);
+    }
 
     void next() {
         _player.next();
@@ -125,6 +144,7 @@ class YMP3Player {
         _player.stop();
         _isPlaying = false;
         _endSoundCheck();
+        _cancelSleepTimer();
     }
 
     bool isPlaying() { return _isPlaying; }
@@ -132,6 +152,11 @@ class YMP3Player {
     uint16_t currentTrack() { return _player.getPlayingSound() - _firstTrackInAlbum + 1; }
 
       private:
+    static const uint8_t MAX_SLEEP_MINUTES = 120;
+    static const unsigned long SLEEP_FADE_MS = 30000;
+
+    enum YSleepState { SLEEP_OFF, SLEEP_RUNNING, SLEEP_DONE };
+
     SoftwareSerial _serial;
     DY::Player _player;
 
@@ -152,9 +177,51 @@ class YMP3Player {
         _player.setVolume(_volume);
     }
 
+    // Goes back to the normal volume if it was stopped in the middle of fading out
+    void _cancelSleepTimer() {
+        if (_isFadingOut()) _player.setVolume(_volume);
+        _sleepState = SLEEP_OFF;
+    }
+
+    void _startSleepTimer() {
+        _cancelSleepTimer();
+        if (_sleepMinutes == 0) return;
+
+        _sleepState = SLEEP_RUNNING;
+        _sleepStartedAt = millis();
+        _fadeVolume = 255;
+    }
+
+    bool _isFadingOut() {
+        return _sleepState == SLEEP_RUNNING && millis() - _sleepStartedAt >= _sleepMinutes * SLEEP_MINUTE_MS;
+    }
+
+    // Once the time is up, fades the volume out and then pauses the playback
+    void _updateSleepTimer() {
+        if (!_isFadingOut()) return;
+
+        unsigned long fadeElapsed = millis() - _sleepStartedAt - _sleepMinutes * SLEEP_MINUTE_MS;
+        if (fadeElapsed >= SLEEP_FADE_MS) {
+            Serial.println(F("Sleep timer done"));
+            _player.pause();
+            _isPlaying = false;
+            _player.setVolume(_volume);
+            _sleepState = SLEEP_DONE;
+            return;
+        }
+
+        // Follows _volume, so turning the volume knob during the fade still has an effect
+        uint8_t fadeVolume = _volume * (SLEEP_FADE_MS - fadeElapsed) / SLEEP_FADE_MS;
+        if (fadeVolume != _fadeVolume) {
+            _fadeVolume = fadeVolume;
+            _player.setVolume(_fadeVolume);
+        }
+    }
+
     void _setVolume(uint8_t volume) {
         _volume = volume;
-        _player.setVolume(_volume);
+        // While fading out, the sleep timer sets the volume
+        if (!_isFadingOut()) _player.setVolume(_volume);
         _volumeChangedAt = millis();
         _isVolumeUnsaved = true;
         Serial.print(F("Volume: "));
@@ -168,5 +235,9 @@ class YMP3Player {
     bool _isVolumeUnsaved = false;
     bool _isSoundCheckActive = false;
     unsigned long _soundCheckStartedAt = 0;
+    uint8_t _sleepMinutes = 0;
+    YSleepState _sleepState = SLEEP_OFF;
+    unsigned long _sleepStartedAt = 0;
+    uint8_t _fadeVolume = 255;
     bool _isPlaying = false;
 };

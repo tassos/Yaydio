@@ -46,14 +46,19 @@ YPARENT_HOLD parentHold = HOLD_IDLE;
 unsigned long parentHoldStartedAt = 0;
 uint8_t parentHoldProgress = 0;
 
-enum YPARENT_MENU_ITEM { CARD_ITEM, MAX_VOLUME_ITEM, END_ITEM, MENU_ITEM_COUNT };
+enum YPARENT_MENU_ITEM { CARD_ITEM, MAX_VOLUME_ITEM, SLEEP_TIMER_ITEM, END_ITEM, MENU_ITEM_COUNT };
 
 uint8_t parentMenuItem = CARD_ITEM;
 bool isWaitingForCard = false;
 
-bool isEditingMaxVolume = false;
-uint8_t editedMaxVolume = 0;
-unsigned long maxVolumeChangedAt = 0;
+// Sleep timer choices in minutes, 0 is off
+const uint8_t SLEEP_OPTIONS[] = {0, 15, 30, 45, 60, 90};
+const uint8_t SLEEP_OPTION_COUNT = sizeof(SLEEP_OPTIONS);
+
+// Editing the value of the selected menu item: the max volume, or the index of a SLEEP_OPTIONS
+bool isEditingValue = false;
+uint8_t editedValue = 0;
+unsigned long valueChangedAt = 0;
 
 bool isPreviewPending = false;
 unsigned long albumChangedAt = 0;
@@ -101,24 +106,59 @@ void showParentMenuItem() {
         case MAX_VOLUME_ITEM:
             display.showMaxVolume(mp3Player.maxVolume(), true);
             break;
+        case SLEEP_TIMER_ITEM:
+            display.showSleepTimer(mp3Player.sleepMinutes(), true);
+            break;
         case END_ITEM:
             display.showEnd();
             break;
     }
 }
 
+void startEditingValue() {
+    if (parentMenuItem == MAX_VOLUME_ITEM) {
+        editedValue = mp3Player.maxVolume();
+    } else {
+        editedValue = 0;
+        for (uint8_t i = 0; i < SLEEP_OPTION_COUNT; i++) {
+            if (SLEEP_OPTIONS[i] == mp3Player.sleepMinutes()) editedValue = i;
+        }
+    }
+    isEditingValue = true;
+    valueChangedAt = currentMillis;
+}
+
+uint8_t minEditedValue() { return parentMenuItem == MAX_VOLUME_ITEM ? 1 : 0; }
+
+uint8_t maxEditedValue() {
+    return parentMenuItem == MAX_VOLUME_ITEM ? YMP3Player::VOLUME_LIMIT : SLEEP_OPTION_COUNT - 1;
+}
+
+void saveEditedValue() {
+    if (parentMenuItem == MAX_VOLUME_ITEM) {
+        mp3Player.setMaxVolume(editedValue);
+        mp3Player.soundCheck(selectedAlbum == 0 ? 1 : selectedAlbum);
+    } else {
+        mp3Player.setSleepMinutes(SLEEP_OPTIONS[editedValue]);
+    }
+}
+
 // The value blinks while editing, but stays on for a moment after each turn so it's easy to read
 // Only redraws when something changed, as updating the display on every loop slows down the knobs
-void showEditedMaxVolume(bool isForced) {
+void showEditedValue(bool isForced) {
     static bool wasValueVisible = false;
-    static uint8_t shownMaxVolume = 0;
+    static uint8_t shownValue = 0;
 
-    bool isValueVisible = currentMillis - maxVolumeChangedAt < 800 || (currentMillis / 400) % 2 == 0;
-    if (!isForced && isValueVisible == wasValueVisible && editedMaxVolume == shownMaxVolume) return;
+    bool isValueVisible = currentMillis - valueChangedAt < 800 || (currentMillis / 400) % 2 == 0;
+    if (!isForced && isValueVisible == wasValueVisible && editedValue == shownValue) return;
 
-    display.showMaxVolume(editedMaxVolume, isValueVisible);
+    if (parentMenuItem == MAX_VOLUME_ITEM) {
+        display.showMaxVolume(editedValue, isValueVisible);
+    } else {
+        display.showSleepTimer(SLEEP_OPTIONS[editedValue], isValueVisible);
+    }
     wasValueVisible = isValueVisible;
-    shownMaxVolume = editedMaxVolume;
+    shownValue = editedValue;
 }
 
 // Restores the screen of the modes the parent hold can start from, after a cancelled hold
@@ -358,34 +398,33 @@ void loop() {
                 mp3Player.stop();
                 parentMenuItem = CARD_ITEM;
                 isWaitingForCard = false;
-                isEditingMaxVolume = false;
+                isEditingValue = false;
                 showParentMenuItem();
             }
 
-            // Edited with the volume knob: turn to change, press the same knob to save
-            if (isEditingMaxVolume) {
+            // Values are edited with the volume knob: turn to change, press the same knob to save
+            if (isEditingValue) {
                 if (leftBtn.justReleased()) {
-                    mp3Player.setMaxVolume(editedMaxVolume);
-                    mp3Player.soundCheck(selectedAlbum == 0 ? 1 : selectedAlbum);
-                    isEditingMaxVolume = false;
+                    saveEditedValue();
+                    isEditingValue = false;
                     showParentMenuItem();
                     break;
                 }
                 if (rightBtn.justReleased()) {
                     // Cancel without saving
-                    isEditingMaxVolume = false;
+                    isEditingValue = false;
                     showParentMenuItem();
                     break;
                 }
 
-                if (editedMaxVolume < YMP3Player::VOLUME_LIMIT && leftRotaryEncoder.justTurnedCW()) {
-                    editedMaxVolume++;
-                    maxVolumeChangedAt = currentMillis;
-                } else if (editedMaxVolume > 1 && leftRotaryEncoder.justTurnedCCW()) {
-                    editedMaxVolume--;
-                    maxVolumeChangedAt = currentMillis;
+                if (editedValue < maxEditedValue() && leftRotaryEncoder.justTurnedCW()) {
+                    editedValue++;
+                    valueChangedAt = currentMillis;
+                } else if (editedValue > minEditedValue() && leftRotaryEncoder.justTurnedCCW()) {
+                    editedValue--;
+                    valueChangedAt = currentMillis;
                 }
-                showEditedMaxVolume(false);
+                showEditedValue(false);
                 break;
             }
 
@@ -411,11 +450,9 @@ void loop() {
                 if (parentMenuItem == END_ITEM) {
                     // Plays the inserted card again, if there is one
                     changeMode(NO_CARD_MODE);
-                } else if (parentMenuItem == MAX_VOLUME_ITEM) {
-                    isEditingMaxVolume = true;
-                    editedMaxVolume = mp3Player.maxVolume();
-                    maxVolumeChangedAt = currentMillis;
-                    showEditedMaxVolume(true);
+                } else if (parentMenuItem == MAX_VOLUME_ITEM || parentMenuItem == SLEEP_TIMER_ITEM) {
+                    startEditingValue();
+                    showEditedValue(true);
                 } else if (cardBtn.isPressed()) {
                     changeMode(SET_ALBUM_MODE);
                 } else {

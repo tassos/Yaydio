@@ -57,6 +57,13 @@ const uint8_t _maxVolume[] = {
     SEG_D | SEG_E | SEG_F,                  // L
 };
 
+const uint8_t _sleepTimer[] = {
+    SEG_A | SEG_C | SEG_D | SEG_F | SEG_G,  // S
+    SEG_D | SEG_E | SEG_F,                  // L
+};
+
+const uint8_t _off[] = {SEG_G, SEG_G};  // --
+
 const uint8_t _nothing[] = {0, 0};
 
 const uint8_t _end[] = {
@@ -103,6 +110,18 @@ class YDisplay {
             _display.showNumberDec(maxVolume, false, 2, 2);
         } else {
             _display.setSegments(_nothing, 2, 2);
+        }
+    }
+
+    // "SL" (sleep) and the minutes, or "--" when off. The value can be hidden to make it blink.
+    void showSleepTimer(uint8_t minutes, bool isValueVisible) {
+        _display.setSegments(_sleepTimer, 2, 0);
+        if (!isValueVisible) {
+            _display.setSegments(_nothing, 2, 2);
+        } else if (minutes == 0) {
+            _display.setSegments(_off, 2, 2);
+        } else {
+            _display.showNumberDec(minutes, false, 2, 2);
         }
     }
 
