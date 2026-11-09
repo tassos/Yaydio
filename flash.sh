@@ -108,6 +108,15 @@ done
 echo
 echo "avrdude output:"
 tail -n 15 "$LOG" | sed 's/^/   /'
+
+# On Linux, only members of the serial port's group may use it
+if grep -qi "permission denied" "$LOG"; then
+    GROUP="$(stat -c %G "$PORT" 2>/dev/null || echo dialout)"
+    fail "No permission to use $PORT." \
+        "Add yourself to the '$GROUP' group, then log out and back in:" \
+        "  sudo usermod -aG $GROUP \$USER"
+fi
+
 fail "Flashing failed." \
     "- Close anything else using the Nano's port (e.g. a serial monitor) and try again." \
     "- Check that the right port was used: $PORT" \
