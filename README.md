@@ -116,6 +116,9 @@ All settings are remembered when the **Yaydio!** is switched off.
 
 ## 🔨 Make your own
 
+### 💾 Firmware
+To put the firmware on the Arduino Nano, or update it, see [FLASHING.md](FLASHING.md).
+
 ### 🧱 Parts
 For a list of parts see [this issue](https://github.com/JakesMD/Yaydio/issues/1).
 
