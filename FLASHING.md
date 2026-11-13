@@ -65,6 +65,26 @@ That's it! Unplug the cable and enjoy.
 > [!TIP]
 > If the message mentions "the other bootloader", that's fine: some Nanos need a different speed, and the script tries both.
 
+### Plan B: flash without the script
+
+If `flash.sh` doesn't work for you, you can run avrdude yourself:
+
+1. Find the Nano's port. In the Terminal, run:
+
+   ```bash
+   ls /dev/cu.*
+   ```
+
+   The Nano shows up as something like `/dev/cu.usbserial-1410` or `/dev/cu.wchusbserial1410`. If you're not sure which one it is, unplug the Nano, run the command again, and see which one disappeared.
+2. Run these commands, with your port instead of `/dev/cu.usbserial-1410`:
+
+   ```bash
+   cd ~/Downloads
+   avrdude -p atmega328p -c arduino -P /dev/cu.usbserial-1410 -b 115200 -D -U flash:w:firmware.hex:i
+   ```
+
+After about 10 seconds, it ends with `Avrdude done.  Thank you.`, and the **Yaydio!** restarts with the new firmware. If it shows `not in sync` or `programmer is not responding`, the Nano has the old bootloader: run the same command with `-b 57600` instead of `-b 115200`.
+
 
 ## 🪟 Windows
 
@@ -85,7 +105,7 @@ That's it! Unplug the cable and enjoy.
    .\avrdude.exe -p atmega328p -c arduino -P COM3 -b 115200 -D -U flash:w:firmware.hex:i
    ```
 
-After about 10 seconds, it ends with `avrdude done.  Thank you.`, and the **Yaydio!** restarts with the new firmware.
+After about 10 seconds, it ends with `Avrdude done.  Thank you.`, and the **Yaydio!** restarts with the new firmware.
 
 > [!TIP]
 > If it shows `not in sync` or `programmer is not responding`, the Nano has the old bootloader. Run the same command with `-b 57600` instead of `-b 115200`.
